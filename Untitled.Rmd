@@ -1,0 +1,114 @@
+---
+title: "Untitled"
+author: "Alexander Herbel"
+date: "6 4 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+install.packages("rtweet")
+install.packages(("textdata"))
+library(rtweet)
+library(tidyverse)
+library(tidytext)
+library(textdata)
+
+```
+
+## R Markdown
+
+
+
+
+```{r }
+setwd("/Users/alexander/Downloads")
+covid19 <- read_csv("covid.csv")
+covid19 <- data.frame(covid19)
+str(covid19)
+head(covid19, 20)
+```
+#popular tweets
+
+```{r }
+covid19eng <- 
+  covid19 %>%
+  filter(Tweet.Language == "English")
+
+covid19eng %>%
+  select(Tweet.Content, Likes.Received) %>%
+  arrange(desc(Likes.Received))
+
+covid19eng %>%
+  select(Tweet.Content, Retweets.Received) %>%
+  arrange(desc(Retweets.Received))
+```
+##cleaning tweets
+
+```{r}
+#remove https
+head(covid19eng) 
+covid19eng$Tweet.Content <- gsub("http\\S+", "", covid19eng$Tweet.Content) 
+
+#remove punctuation and switch to lowercase
+tweets <- covid19eng %>%
+  select(Tweet.Content) %>%
+  unnest_tokens(word, Tweet.Content)
+
+#remove stopwords from tweets
+cleaned_tweets <- tweets %>%
+  anti_join(stop_words)
+head(cleaned_tweets)
+
+#top 10 words in #Covid-19
+cleaned_tweets %>%
+  count(word, sort = TRUE) %>%
+  top_n(10) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(x = word, y = n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  theme_classic() +
+  labs(x = "Words",
+       y = "Count",
+       title = "Unique word counts found in #Covid-19")
+
+
+  
+```
+
+
+#getting sentiments
+```{r}
+get_sentiments("bing") %>%
+  filter(sentiment == "positive")
+
+get_sentiments("bing") %>%
+  filter(sentiment == "negative")
+
+```
+
+```{r}
+cleanedtweets <-
+cleaned_tweets %>%
+  count(word, sort = TRUE)
+
+nrc <- get_sentiments("nrc")
+
+cleanedtweetsjoined <-
+cleanedtweets %>%
+  inner_join(nrc) 
+
+
+
+  
+
+
+
+
+  
+
+
+
+```
+
