@@ -17,12 +17,14 @@ library(utf8)
 library(tidytext)
 library(data.table)
 library(RColorBrewer)
-library(webshot)
 webshot::install_phantomjs()
+library(webshot)
+library(rtweet)
 library(htmlwidgets)
 library(wordcloud2)
+library(saotd)
 
-#install.packages("htmlwidgets")
+#install.packages("saotd")
 ```
 
 
@@ -30,9 +32,21 @@ library(wordcloud2)
 id <- "1Fy2sfSzqGATNu_lICcUds6r9pz-5HL-E"
 tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
 
-#tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
+tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
 
 tweets$text <- stri_encode(tweets$text, "", "UTF-8")
+
+tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
+corpus <- Corpus(DataframeSource(tweetdata))
+
+#function to remov URLs
+removeURL <- content_transformer(function(x) gsub("(f|ht)tp(s?)://\\S+", "", x, perl=T))
+
+
+corpus <- tm_map(corpus, removeURL)
+d <- data.frame(text = sapply(corpus, as.character), stringsAsFactors = F)
+
+tweets$text <- d$text
 ```
 
 ```{r}
@@ -45,14 +59,15 @@ tweets %>%
   mutate_if(is.factor, as.character) 
 
 tweets$text <- str_replace_all(tweets$text,
-                c("[\r\n]" = " ", "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", "[^a-zA-Z0-9]" = " ")
-              )
+                c("[\r\n]" = " ", "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", "[^a-zA-Z0-9]" = " ", "[\\s[:digit:]]" = " ", "don" = "dont"))
+
+
 #utf-8 encoding:
 #"â‚¬" = "€", "â€š" = ",", "â€ž"= "„", "â€¦"= "...", "Ë†"= "ˆ", "â€“"= "–",  "â€”"= "--", 
 #              "â€º"= "›", "Â£"= "£", "Â¥"= "¥", "Â¦"= "¦", "Â§"= "§", "Â¨"= "¨", "Â«"= "«", "Â°"= "°", 
 #              "Â²"= "²", "Â³"= "³", "Â´"= "´", "Â¸"= "¸", "Â»"= "»", "Â¿"= "¿", "ÃŸ"= "ß", "Ã¡"= "á", 
 #              "Ã¢"= "â", "Ã£"= "ã", "Ã¤"= "ä", "Ã¥"= "å", "Ã¨"= "è", "Ã©"= "é", "Ãª"= "ê", "Ã«"= "ë", 
-#              "Ã¬"= "ì", "Ã"= "í", "Ã®"= "î", "Ã¯"= "ï", "Ã±"= "ñ", "Ã²"= "ò", "Ã³"= "ó", "Ã´"= "ô", 
+#              "Ã¬"= "ì", "Ã"= "�?", "Ã®"= "î", "Ã¯"= "ï", "Ã±"= "ñ", "Ã²"= "ò", "Ã³"= "ó", "Ã´"= "ô", 
 #              "Ãµ"= "õ", "Ã¶"= "ö", "Ã¹"= "ù", "Ãº"= "ú", "Ã»"= "û", "Ã¼"= "ü", "Ã½"= "ý", "Ã¿"= "ÿ", 
 #              "Ã"= "à", "Â"= " ", "â€"= "”", "”™" = "'", 
 
@@ -67,6 +82,8 @@ empty_char <- tweets %>%
 tweets <- tweets %>%
   anti_join(empty_char, by = "text")
 
+rm(empty_char)
+
 ```
 
 
@@ -78,9 +95,13 @@ get_sentiments("bing") #positive/negative
 ```{r}
 data("stop_words")
 
+custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn"), 
+                                      lexicon = c("custom")), 
+                               stop_words)
+
 tweetwords <- tweets %>%
   unnest_tokens(word, text) %>%
-  anti_join(stop_words) %>%
+  anti_join(custom_stop_words) %>%
   count(word,  sort=T)
 
 tweetwords %>%
@@ -103,13 +124,12 @@ tweetwords %>%
 
 wcloud <- tweetwords %>%
   anti_join(stop_words) %>%
-  filter(n > 1000) %>%
+  filter(n > 100) %>%
   mutate(word = reorder(word, n))
 
 cloud <- wordcloud2(wcloud, size = 3)
 
 saveWidget(cloud, "wcloud.html", selfcontained = F)
-#webshot("1.html", "1.png", vwidth = 1992, vheigth = 1744, delay = 10)
 ```
 
 
