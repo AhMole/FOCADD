@@ -27,7 +27,10 @@ library(wordcloud2)
 
 
 ```{r}
-tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
+id <- "1Fy2sfSzqGATNu_lICcUds6r9pz-5HL-E"
+tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
+
+#tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
 
 tweets$text <- stri_encode(tweets$text, "", "UTF-8")
 ```
