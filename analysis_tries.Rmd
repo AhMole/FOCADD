@@ -23,8 +23,9 @@ library(rtweet)
 library(htmlwidgets)
 library(wordcloud2)
 library(saotd)
+library(RCurl)
 
-#install.packages("saotd")
+#install.packages("RCurl")
 ```
 
 
@@ -88,11 +89,6 @@ rm(empty_char)
 
 
 ```{r}
-get_sentiments("bing") #positive/negative
-#get_sentiments("nrc") #cats: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust www.tidytextmining.com/sentiment.html
-```
-
-```{r}
 data("stop_words")
 
 custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn"), 
@@ -105,6 +101,7 @@ tweetwords <- tweets %>%
   count(word,  sort=T) %>% #56851
   filter(n > 10) #4467 #more or less clean dataset w/ words which occur more than 10 times
 
+# first inspection of top words
 tweetwords %>%
   filter(n > 1000) %>%
   mutate(word = reorder(word, n)) %>%
@@ -116,13 +113,7 @@ tweetwords %>%
 
 
 ```{r fig.height = 11, fig.width = 9}
-#sentiment <- tweetwords %>%
-#  inner_join(get_sentiments("bing")) %>%
-#  count(word, sentiment) %>%
-#  spread(sentiment, n, fill = 0) %>%
-#  mutate(sentiment = positive - negative)
-
-
+#topwords get displayed in a wordcloud, wordcloud is a .html file on github repo
 wcloud <- tweetwords %>%
   anti_join(stop_words) %>%
   filter(n > 100) %>%
@@ -132,6 +123,27 @@ cloud <- wordcloud2(wcloud, size = 3)
 
 saveWidget(cloud, "wcloud.html", selfcontained = F)
 ```
+
+```{r}
+bing <- get_sentiments("bing") #positive/negative
+x <- getURL("https://raw.github.com/AhMole/FOCADD/master/AFINN-111.csv")
+afinn <- read.csv(text = x)
+#get_sentiments("nrc") #cats: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust www.tidytextmining.com/sentiment.html
+
+sentiment <- tweetwords %>%
+  inner_join(bing, by = "word") %>%
+  count(word, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+
+
+ggplot(sentiment, aes(word, sentiment)) +
+  geom_col(show.legend = F)
+
+
+
+```
+
 
 
 
