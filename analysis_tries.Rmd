@@ -1,0 +1,117 @@
+---
+title: "analysis"
+author: "Lennart Roesemeier"
+date: "May 28, 2020"
+output: html_document
+---
+
+
+
+```{r}
+library(NLP)
+library(tm)
+library(quanteda)
+library(tidyverse)
+library(stringi)
+library(utf8)
+library(tidytext)
+library(data.table)
+library(RColorBrewer)
+library(wordcloud)
+library(webshot)
+webshot::install_phantomjs()
+library(htmlwidgets)
+library(wordcloud2)
+
+#install.packages("htmlwidgets")
+```
+
+
+```{r}
+tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
+
+tweets$text <- stri_encode(tweets$text, "", "UTF-8")
+```
+
+```{r}
+tweets <- as_tibble(tweets)
+class(tweets$text)
+
+tweets$text <- tolower(tweets$text)
+
+tweets %>%
+  mutate_if(is.factor, as.character) 
+
+tweets$text <- str_replace_all(tweets$text,
+                c("[\r\n]" = " ", "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", "[^a-zA-Z0-9]" = " ")
+              )
+#utf-8 encoding:
+#"â‚¬" = "€", "â€š" = ",", "â€ž"= "„", "â€¦"= "...", "Ë†"= "ˆ", "â€“"= "–",  "â€”"= "--", 
+#              "â€º"= "›", "Â£"= "£", "Â¥"= "¥", "Â¦"= "¦", "Â§"= "§", "Â¨"= "¨", "Â«"= "«", "Â°"= "°", 
+#              "Â²"= "²", "Â³"= "³", "Â´"= "´", "Â¸"= "¸", "Â»"= "»", "Â¿"= "¿", "ÃŸ"= "ß", "Ã¡"= "á", 
+#              "Ã¢"= "â", "Ã£"= "ã", "Ã¤"= "ä", "Ã¥"= "å", "Ã¨"= "è", "Ã©"= "é", "Ãª"= "ê", "Ã«"= "ë", 
+#              "Ã¬"= "ì", "Ã"= "í", "Ã®"= "î", "Ã¯"= "ï", "Ã±"= "ñ", "Ã²"= "ò", "Ã³"= "ó", "Ã´"= "ô", 
+#              "Ãµ"= "õ", "Ã¶"= "ö", "Ã¹"= "ù", "Ãº"= "ú", "Ã»"= "û", "Ã¼"= "ü", "Ã½"= "ý", "Ã¿"= "ÿ", 
+#              "Ã"= "à", "Â"= " ", "â€"= "”", "”™" = "'", 
+
+setDT(tweets)
+cols_rectified <- names(tweets)[vapply(tweets, is.character, logical(1))]
+tweets[,c(cols_rectified) := lapply(.SD, trimws), .SDcols = cols_rectified]
+tweets[,c(cols_rectified) := lapply(.SD, function(x)gsub("\\s+", " ", x)), .SDcols = cols_rectified]
+
+empty_char <- tweets %>%
+  filter(!str_detect(text, ""))
+
+tweets <- tweets %>%
+  anti_join(empty_char, by = "text")
+
+```
+
+
+```{r}
+get_sentiments("bing") #positive/negative
+#get_sentiments("nrc") #cats: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust www.tidytextmining.com/sentiment.html
+```
+
+```{r}
+data("stop_words")
+
+tweetwords <- tweets %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word,  sort=T)
+
+tweetwords %>%
+  filter(n > 1000) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+
+
+```{r fig.height = 11, fig.width = 9}
+#sentiment <- tweetwords %>%
+#  inner_join(get_sentiments("bing")) %>%
+#  count(word, sentiment) %>%
+#  spread(sentiment, n, fill = 0) %>%
+#  mutate(sentiment = positive - negative)
+
+
+wcloud <- tweetwords %>%
+  anti_join(stop_words) %>%
+  filter(n > 1000) %>%
+  mutate(word = reorder(word, n))
+
+cloud <- wordcloud2(wcloud, size = 3)
+
+saveWidget(cloud, "wcloud.html", selfcontained = F)
+#webshot("1.html", "1.png", vwidth = 1992, vheigth = 1744, delay = 10)
+```
+
+
+
+
+
+
