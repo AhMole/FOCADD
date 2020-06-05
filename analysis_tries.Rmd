@@ -103,7 +103,7 @@ tweetwords <- tweets %>%
   unnest_tokens(word, text) %>%
   anti_join(custom_stop_words) %>%
   count(word,  sort=T) %>% #56851
-  filter(n > 10) #4467 #more or less clean dataset w/ words which occur more than ten times
+  filter(n > 10) #4467 #more or less clean dataset w/ words which occur more than 10 times
 
 tweetwords %>%
   filter(n > 1000) %>%
