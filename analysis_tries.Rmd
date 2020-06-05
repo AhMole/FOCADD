@@ -140,8 +140,6 @@ sentiment <- tweetwords %>%
 ggplot(sentiment, aes(word, sentiment)) +
   geom_col(show.legend = F)
 
-
-
 ```
 
 
