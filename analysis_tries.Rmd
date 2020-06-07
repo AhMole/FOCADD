@@ -126,11 +126,10 @@ saveWidget(cloud, "wcloud.html", selfcontained = F)
 
 ```{r}
 bing <- get_sentiments("bing") #positive/negative
-x <- getURL("https://raw.github.com/AhMole/FOCADD/master/AFINN-111.csv")
-afinn <- read.csv(text = x)
-#get_sentiments("nrc") #cats: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust www.tidytextmining.com/sentiment.html
+
 
 sentiment <- tweetwords %>%
+  filter(n > 300) %>%
   inner_join(bing, by = "word") %>%
   count(word, sentiment) %>%
   spread(sentiment, n, fill = 0) %>%
@@ -139,7 +138,6 @@ sentiment <- tweetwords %>%
 
 ggplot(sentiment, aes(word, sentiment)) +
   geom_col(show.legend = F)
-
 ```
 
 
