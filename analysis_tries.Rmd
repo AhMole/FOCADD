@@ -21,11 +21,13 @@ webshot::install_phantomjs()
 library(webshot)
 library(rtweet)
 library(htmlwidgets)
+library(wordcloud)
 library(wordcloud2)
 library(saotd)
 library(RCurl)
+library(reshape2)
 
-#install.packages("RCurl")
+#install.packages("reshape2")
 ```
 
 
@@ -33,7 +35,7 @@ library(RCurl)
 id <- "1Fy2sfSzqGATNu_lICcUds6r9pz-5HL-E"
 tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
 
-tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
+#tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
 
 tweets$text <- stri_encode(tweets$text, "", "UTF-8")
 
@@ -91,7 +93,7 @@ rm(empty_char)
 ```{r}
 data("stop_words")
 
-custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn"), 
+custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn", "lol", "xi"), 
                                       lexicon = c("custom")), 
                                stop_words)
 
@@ -125,21 +127,38 @@ saveWidget(cloud, "wcloud.html", selfcontained = F)
 ```
 
 ```{r}
-bing <- get_sentiments("bing") #positive/negative
-
 
 sentiment <- tweetwords %>%
-  filter(n > 300) %>%
-  inner_join(bing, by = "word") %>%
-  count(word, sentiment) %>%
+  rename("amount" = "n") %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, amount, sentiment) %>%
   spread(sentiment, n, fill = 0) %>%
-  mutate(sentiment = positive - negative)
+  mutate(sentiment = positive - negative) %>%
+  arrange(desc(amount))
 
+dplyr::count(sentiment, negative, positive)
 
-ggplot(sentiment, aes(word, sentiment)) +
-  geom_col(show.legend = F)
 ```
 
+```{r}
+sentiment %>%
+  filter(amount > 50) %>%
+  ggplot(aes(word, sentiment)) +
+  geom_col() +
+  theme(axis.text = element_blank())
+```
+
+
+
+```{r}
+sentiment %>%
+  count(word, sentiment, amount) %>%
+  acast(word ~ sentiment, value.var = "amount", fill = 0) %>%
+  magrittr::set_colnames(c("negative", "positive")) %>%
+  comparison.cloud(colors = c("red", "blue"),
+                   max.words = 100, random.order = F, 
+                   match.colors = T)
+```
 
 
 
