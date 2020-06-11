@@ -26,8 +26,9 @@ library(wordcloud2)
 library(saotd)
 library(RCurl)
 library(reshape2)
+library(lubridate)
 
-#install.packages("reshape2")
+#install.packages("lubridate")
 ```
 
 
@@ -160,6 +161,23 @@ sentiment %>%
                    match.colors = T)
 ```
 
+
+
+```{r}
+tweets1 <- tweets %>%
+  select(timestamp, text) %>%
+  mutate(date = date(strptime(timestamp, "%Y/%m/%d %H:%M:%S"))) %>% as.character()
+  filter(date > "2020-01-23" & date < "2020-01-30") %>%
+  unnest_tokens(word, text) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>% #56851
+  filter(n > 10) 
+
+
+tweets %>%
+  #select(timestamp, text) %>%
+  #mutate(date = date(strptime(timestamp, "%m/%d/%Y %H:%M:%S"))) %>% as.character
+```
 
 
 
