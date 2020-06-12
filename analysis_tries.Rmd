@@ -101,7 +101,8 @@ tweetwords %>%
   ggplot(aes(word, n)) +
   geom_col() +
   xlab(NULL) +
-  coord_flip()
+  coord_flip() +
+  labs(title="Topwords of the Tweets", subtitle="Words which occur more than 1000 times", x="Words", y="Wordcount")
 ```
 
 
@@ -130,12 +131,19 @@ dplyr::count(sentiment, negative, positive)
 
 ```
 
-```{r warning=FALSE}
+```{r fig.width=14, fig.height=5, warning=FALSE}
+label <- c("negative", "l", "0.0", "m", "positive")
 sentiment %>%
   filter(amount > 50) %>%
   ggplot(aes(word, sentiment)) +
   geom_col() +
-  theme(axis.text = element_blank())
+  labs(title="Positve/Negative Sentiments of the Tweets", y="Negative        Sentiment        Positive", x="Contribution to Sentiment") +
+  theme(axis.title.x = element_text(),
+        axis.text.x = element_text(color = "black", angle = 90),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(),
+        axis.text.y = element_text(color = "black"),
+        axis.ticks.y = element_line()) 
 ```
 
 
@@ -202,7 +210,8 @@ week1words %>%
   ggplot(aes(word, n)) +
   geom_col() +
   xlab(NULL) +
-  coord_flip()
+  coord_flip() +
+  labs(title = "Topwords Occurance", subtitle = "23 Jan 2020 - 30 Jan 2020", y = "Occurance Count")
 ```
 
 ```{r warning=FALSE}
@@ -211,8 +220,31 @@ week2words %>%
   ggplot(aes(word, n)) +
   geom_col() +
   xlab(NULL) +
+  coord_flip() +labs(title = "Topwords Occurance", subtitle = "23 April 2020 - 30 April 2020", y = "Occurance Count")
+```
+
+```{r}
+weekwords <- week1words %>%
+  bind_rows(week2words) %>%
+  mutate(week = case_when(n == 619 | n == 295 | n == 211 | n == 199 | n == 173 | n == 166 | n == 159 | n == 153 | n == 103 | n == 91 | n == 59 | n == 48 |
+                          n == 46 | n == 40 | n == 38 | n == 37 | n == 36 | n == 32 | n == 31 | n == 30 ~ "Week Jan",
+                          n == 1590 | n == 1005 | n == 974 | n == 590 | n == 495 | n == 433 | n == 309 | n == 278 | n == 272 | n == 212 | n == 202 | n == 189 |
+                          n == 187 | n == 169 | n == 165 | n == 156 | n == 151 | n == 141 | n == 126 | n == 116 ~ "Week April"))
+  
+
+weekwords %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = week)) +
+  geom_col(show.legend = F) +
+  facet_wrap(~week, scales = "free_y") +
+  labs(title = "Topwords Occurance",
+       subtitle = "23 Jan - 30 Jan 2020 and 23 April - 30 April 2020",
+       y=NULL, 
+       x=NULL) +
   coord_flip()
 ```
+
+
 
 ```{r wordcloud, warning=FALSE}
 wc_week1 <- week1words %>%
