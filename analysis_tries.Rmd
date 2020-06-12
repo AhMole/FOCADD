@@ -137,7 +137,7 @@ sentiment %>%
   filter(amount > 50) %>%
   ggplot(aes(word, sentiment)) +
   geom_col() +
-  labs(title="Positve/Negative Sentiments of the Tweets", y="Negative        Sentiment        Positive", x="Contribution to Sentiment") +
+  labs(title="Positive/Negative Sentiments of the Tweets", y="Negative        Sentiment        Positive", x="Contribution to Sentiment") +
   theme(axis.title.x = element_text(),
         axis.text.x = element_text(color = "black", angle = 90),
         axis.ticks.x = element_blank(),
