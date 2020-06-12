@@ -5,9 +5,9 @@ date: "May 28, 2020"
 output: html_document
 ---
 
+##Data Exploration
 
-
-```{r, warning=FALSE}
+```{r echo=FALSE, include=FALSE, warning=FALSE}
 library(NLP)
 library(tm)
 library(quanteda)
@@ -31,13 +31,17 @@ library(lubridate)
 #install.packages("lubridate")
 ```
 
+First at all the data is loaded as a dataframe called "tweets". The data comes with different encodings, probably according to the location of the twitterer. 
 
-```{r warning=FALSE}
+```{r results="hide", warning=FALSE}
 id <- "1Fy2sfSzqGATNu_lICcUds6r9pz-5HL-E"
 tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
+iconvlist()
+```
 
-#tweets <- read.csv("C://Users//Lennart//Documents//Studium//master_sociology//data_computingdisp//term paper//data//dataappend.csv", header=T)
+Encoding the data to UTF-8 allows special characters like ä,ö,ü,ß and similiar. Unfortunately, the data is dirty by URLs, non-english characters, typos and others. The cleaner the data the preciser the analysis. To remove thes URLs the function "removeURL" is applied to the tweets. The text of the tweets are resided in the "text"" colum of the "tweets" data. 
 
+```{r warning=FALSE}
 tweets$text <- stri_encode(tweets$text, "", "UTF-8")
 
 tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
@@ -49,11 +53,13 @@ removeURL <- content_transformer(function(x) gsub("(f|ht)tp(s?)://\\S+", "", x, 
 
 corpus <- tm_map(corpus, removeURL)
 d <- data.frame(text = sapply(corpus, as.character), stringsAsFactors = F)
-
 tweets$text <- d$text
+rm(d)
 ```
 
-```{r warning=FALSE}
+Furthermore, auncapitalization is applied to all tweets and non-alphanumeric, punctation, line breaks, unicode scripted characters and special letters (like á) are rmoved from the tweets, As a result of this some rows contains an empty cell such rows get also deleted. This decreased the dataset by 557 rows, espacially, tweets.
+
+```{r results="hide", warning=FALSE}
 tweets <- as_tibble(tweets)
 class(tweets$text)
 
@@ -77,9 +83,9 @@ tweets <- tweets %>%
   anti_join(empty_char, by = "text")
 
 rm(empty_char)
-rm(d)
 ```
 
+In addition, so called stopwords (e.g. "and", "the", "is", and more) can bias the analysis, because such words are frequently more used than other words. So the stopwords are removeved via a pre-made list as well as some custom stopwords (espacially words/shortcuts which are common used on social media such as "lol", "wtf", "idk", "asap", etc.). The first exploration of the adjusted data results in "chinazi", "chinesevirus", "china", "chinaliedpeopledied", "asian", etc. 
 
 ```{r warning=FALSE}
 data("stop_words")
@@ -102,21 +108,25 @@ tweetwords %>%
   geom_col() +
   xlab(NULL) +
   coord_flip() +
-  labs(title="Topwords of the Tweets", subtitle="Words which occur more than 1000 times", x="Words", y="Wordcount")
+  labs(title="Topwords of the Tweets", subtitle="Words which occur more than 1000 times", x="Words",
+       y="Wordcount")
 ```
 
 
-```{r fig.height = 11, fig.width = 9, warning=FALSE}
+```{r wordcloudall include=FALSE, fig.height = 11, fig.width = 9, warning=FALSE}
 #topwords get displayed in a wordcloud, wordcloud is a .html file on github repo
 wcloud <- tweetwords %>%
   anti_join(stop_words) %>%
   filter(n > 100) %>%
   mutate(word = reorder(word, n))
 
-cloud <- wordcloud2(wcloud, size = 3)
+cloud <- wordcloud2(wcloud)
 saveWidget(cloud, "wcloud.html", selfcontained = F)
 webshot("wcloud.html", "wcloud.png", delay = 5, vwidth = 2000, vheight = 2000)
 ```
+![wordcloudall](wcloud.png)
+
+Racial slurs like "chinazi", "chingchong", "chinesevirus", and similar can also be used in an ironic or maybe positve sentiment. So, the general sentiment of these tweets is computed. It shows that the dataset is more negative polarized because there are more negative senitments than twice as many as positives (negative 434 vs positive 205). This result is shown in the table and the graph below.
 
 ```{r warning=FALSE}
 sentiment <- tweetwords %>%
@@ -251,7 +261,7 @@ wc_week1 <- week1words %>%
   mutate(word = reorder(word, n)) %>%
   mutate_if(is.factor, as.character)
 
-cloud1 <- wordcloud2(wc_week1)
+cloud1 <- wordcloud2(wc_week1, size = 2)
 saveWidget(cloud1, "wcloud_week1.html", selfcontained = F)
 webshot("wcloud_week1.html", "wc_week1.png", delay = 5, vwidth = 2000, vheight = 2000)
 
