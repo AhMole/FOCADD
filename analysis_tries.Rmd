@@ -7,7 +7,7 @@ output: html_document
 
 ##Data Exploration
 
-```{r echo=FALSE, include=FALSE, warning=FALSE}
+```{r include=FALSE, warning=FALSE}
 library(NLP)
 library(tm)
 library(quanteda)
@@ -33,7 +33,7 @@ library(lubridate)
 
 First at all the data is loaded as a dataframe called "tweets". The data comes with different encodings, probably according to the location of the twitterer. 
 
-```{r results="hide", warning=FALSE}
+```{r results="hide", message=FALSE, warning=FALSE}
 id <- "1Fy2sfSzqGATNu_lICcUds6r9pz-5HL-E"
 tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
 iconvlist()
@@ -41,7 +41,7 @@ iconvlist()
 
 Encoding the data to UTF-8 allows special characters like ä,ö,ü,ß and similiar. Unfortunately, the data is dirty by URLs, non-english characters, typos and others. The cleaner the data the preciser the analysis. To remove thes URLs the function "removeURL" is applied to the tweets. The text of the tweets are resided in the "text"" colum of the "tweets" data. 
 
-```{r warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 tweets$text <- stri_encode(tweets$text, "", "UTF-8")
 
 tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
@@ -59,7 +59,7 @@ rm(d)
 
 Furthermore, auncapitalization is applied to all tweets and non-alphanumeric, punctation, line breaks, unicode scripted characters and special letters (like á) are rmoved from the tweets, As a result of this some rows contains an empty cell such rows get also deleted. This decreased the dataset by 557 rows, espacially, tweets.
 
-```{r results="hide", warning=FALSE}
+```{r results="hide", message=FALSE, warning=FALSE}
 tweets <- as_tibble(tweets)
 class(tweets$text)
 
@@ -85,12 +85,12 @@ tweets <- tweets %>%
 rm(empty_char)
 ```
 
-In addition, so called stopwords (e.g. "and", "the", "is", and more) can bias the analysis, because such words are frequently more used than other words. So the stopwords are removeved via a pre-made list as well as some custom stopwords (espacially words/shortcuts which are common used on social media such as "lol", "wtf", "idk", "asap", etc.). The first exploration of the adjusted data results in "chinazi", "chinesevirus", "china", "chinaliedpeopledied", "asian", etc. 
+In addition, so called stopwords (e.g. "and", "the", "is", and more) can bias the analysis because such words are frequently more used than other words. So the stopwords are removeved via a pre-made list as well as some custom stopwords, espacially, words/shortcuts which are common used on social media such as "lol", "wtf", "idk", "asap", etc. The custom stopwords are not declared in the pre-made list so they are added manually by looking at the data. This reduces the dataframe from approx. 700,000 tokens to approx. 56,835 tokens. Moreover, tokens which occur less than 10 times are not very representive. Based on this these tokens are removed, too, this leads to a final dataframe with 4451 tokens. The first exploration of the adjusted data results in "chinazi", "chinesevirus", "china", "chinaliedpeopledied", "asian", etc. (see graph).
 
-```{r warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 data("stop_words")
 
-custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn", "lol", "xi", "ang", "ako", "mo", "lang", "nga", "kung", "naman", "kaya", "kayo", "pero", "yung", "yan", "twitter"), 
+custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn", "lol", "xi", "ang", "ako", "mo", "lang", "nga", "kung", "naman", "kaya", "kayo", "pero", "yung", "yan", "twitter", "ban"), 
                                       lexicon = c("custom")), 
                                stop_words)
 
@@ -126,7 +126,9 @@ webshot("wcloud.html", "wcloud.png", delay = 5, vwidth = 2000, vheight = 2000)
 ```
 ![wordcloudall](wcloud.png)
 
-Racial slurs like "chinazi", "chingchong", "chinesevirus", and similar can also be used in an ironic or maybe positve sentiment. So, the general sentiment of these tweets is computed. It shows that the dataset is more negative polarized because there are more negative senitments than twice as many as positives (negative 434 vs positive 205). This result is shown in the table and the graph below.
+##Analysis
+
+Racial slurs like "chinazi", "chingchong", "chinesevirus", and similar can also be used in an ironic or maybe positve sentiment. So, the general sentiment of these tweets is computed. It shows that the dataset is more negative polarized because there are twice as many negative as positive sentiments (434 negative vs 205 positive). This result is shown in the table and the graph below.
 
 ```{r warning=FALSE}
 sentiment <- tweetwords %>%
@@ -141,13 +143,14 @@ dplyr::count(sentiment, negative, positive)
 
 ```
 
-```{r fig.width=14, fig.height=5, warning=FALSE}
-label <- c("negative", "l", "0.0", "m", "positive")
+```{r fig.width=14, fig.height=5, echo=FALSE, warning=FALSE}
 sentiment %>%
   filter(amount > 50) %>%
   ggplot(aes(word, sentiment)) +
   geom_col() +
-  labs(title="Positive/Negative Sentiments of the Tweets", y="Negative        Sentiment        Positive", x="Contribution to Sentiment") +
+  labs(title="Positive/Negative Sentiments of the Tweets", caption="only tokens which occur more than 50 times are displayed due to illustration reasons",
+       y="Negative        Sentiment        Positive", 
+       x="Tokens") +
   theme(axis.title.x = element_text(),
         axis.text.x = element_text(color = "black", angle = 90),
         axis.ticks.x = element_blank(),
@@ -158,7 +161,7 @@ sentiment %>%
 
 
 
-```{r warning=FALSE}
+```{r include=FALSE, warning=FALSE}
 sentiment %>%
   count(word, sentiment, amount) %>%
   acast(word ~ sentiment, value.var = "amount", fill = 0) %>%
@@ -168,9 +171,9 @@ sentiment %>%
                    match.colors = T)
 ```
 
+Furthermore, the aim of this term paper is to analyse a possible change of the racial slurs. So, on the 30th of January the World Health Organization declared the COVID-19 virus as a "Public Health Emergency of International Concern" (WHO 2020). Based on this, the frequency of occurance of the words of this week (26 Jan - 02 Feb 2020) are compared with the frequency of the words of the last week of the dataset (23 - 30 April 2020). Racial slurs ("chingchong", "chinazi", "chinaliedpeopledied", "chinesevirus", etc.) are under the top 20 which can be seen in graphs below. 
 
-
-```{r warning=FALSE}
+```{r results="hide", fig.show="hide", message=FALSE, warning=FALSE}
 tweetsweek1 <- tweets %>%
   select(timestamp, text) %>%
   rename("date" = "timestamp", "tweet" = "text") %>%
@@ -182,7 +185,7 @@ tweetsweek1 <- tweets %>%
   select(-date) %>%
   rename("date" = "newdate") %>%
   mutate(date = as.Date(date, "%d-%m-%Y")) %>%
-  filter(date >= "2020-1-23" & date <= "2020-1-30")
+  filter(date >= "2020-1-26" & date <= "2020-2-02")
 
 
 tweetsweek2 <- tweets %>%
@@ -198,65 +201,99 @@ tweetsweek2 <- tweets %>%
   mutate(date = as.Date(date, "%d-%m-%Y")) %>%
   filter(date >= "2020-4-23" & date <= "2020-4-30")
 ```
-
-```{r warning=FALSE}
-week1words <- tweetsweek1 %>%
-  unnest_tokens(word, tweet) %>%
-  anti_join(custom_stop_words) %>%
-  count(word,  sort=T) %>%
-  top_n(20)
-
-week2words <- tweetsweek2 %>%
-  unnest_tokens(word, tweet) %>%
-  anti_join(custom_stop_words) %>%
-  count(word,  sort=T) %>%
-  top_n(20)
-```
-
-
-```{r warning=FALSE}
-week1words %>%
-  mutate(word = reorder(word, n)) %>%
-  ggplot(aes(word, n)) +
-  geom_col() +
-  xlab(NULL) +
-  coord_flip() +
-  labs(title = "Topwords Occurance", subtitle = "23 Jan 2020 - 30 Jan 2020", y = "Occurance Count")
-```
-
-```{r warning=FALSE}
-week2words %>%
-  mutate(word = reorder(word, n)) %>%
-  ggplot(aes(word, n)) +
-  geom_col() +
-  xlab(NULL) +
-  coord_flip() +labs(title = "Topwords Occurance", subtitle = "23 April 2020 - 30 April 2020", y = "Occurance Count")
-```
-
 ```{r}
-weekwords <- week1words %>%
-  bind_rows(week2words) %>%
-  mutate(week = case_when(n == 619 | n == 295 | n == 211 | n == 199 | n == 173 | n == 166 | n == 159 | n == 153 | n == 103 | n == 91 | n == 59 | n == 48 |
-                          n == 46 | n == 40 | n == 38 | n == 37 | n == 36 | n == 32 | n == 31 | n == 30 ~ "Week Jan",
+week1occur <- tweetsweek1 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20)
+
+week2occur <- tweetsweek2 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20)
+
+
+weekwordsoccur <- week1occur %>%
+  bind_rows(week2occur) %>%
+  mutate(week = case_when(n == 619 | n == 295 | n == 201 | n == 166 | n == 162 | n == 146 | n == 139 | n == 132 | n == 97 | n == 89 | n == 58 |
+                          n == 47 | n == 41 | n == 36 | n == 35 | n == 31 | n == 30 | n == 28  ~ "Week Jan/Feb",
                           n == 1590 | n == 1005 | n == 974 | n == 590 | n == 495 | n == 433 | n == 309 | n == 278 | n == 272 | n == 212 | n == 202 | n == 189 |
                           n == 187 | n == 169 | n == 165 | n == 156 | n == 151 | n == 141 | n == 126 | n == 116 ~ "Week April"))
-  
 
-weekwords %>%
+weekwordsoccur %>%
+  select(word, n, week) %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(word, n, fill = week)) +
   geom_col(show.legend = F) +
   facet_wrap(~week, scales = "free_y") +
   labs(title = "Topwords Occurance",
-       subtitle = "23 Jan - 30 Jan 2020 and 23 April - 30 April 2020",
-       y=NULL, 
+       subtitle = "26 Jan - 02 Feb 2020 and 23 April - 30 April 2020",
+       y="Token Occurance", 
+       x=NULL) +
+  coord_flip()
+```
+
+Therefore the "raw" count of words (=tokens) is not very representive because it was not equally tweetet in these weeks. This can seen by the dataframe observation of "tweetsweek1" (1443 Tweets) and "tweetsweek2" (3533). The week of April contains more than twice as many tweets as the week of January. 
+To analyse the possible change of racial slurs on Twitter during the coronavirus we compare the frequency in percent of the top 20 words. To calculate this frequency the occurance of each word is counted and divided by the total sum of all occuraces of the week and multiplied by 100 to get the percentage value.
+
+```{r fig.show="hide", message=FALSE, warning=FALSE}
+tweetsweek1 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  summarise(total = sum(n)) #2416
+```
+```{r fig.show="hide", message=FALSE, warning=FALSE}
+tweetsweek2 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  summarise(total = sum(n))   #7760
+```
+
+
+```{r message=FALSE, warning=FALSE}
+week1words <- tweetsweek1 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  mutate(freq = (n/2416)*100)
+
+week2words <- tweetsweek2 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  mutate(freq = (n/7760)*100)
+
+weekwords <- week1words %>%
+  bind_rows(week2words) %>%
+  mutate(week = case_when(n == 619 | n == 295 | n == 201 | n == 166 | n == 162 | n == 146 | n == 139 | n == 132 | n == 97 | n == 89 | n == 58 |
+                          n == 47 | n == 41 | n == 36 | n == 35 | n == 31 | n == 30 | n == 28  ~ "Week Jan/Feb",
+                          n == 1590 | n == 1005 | n == 974 | n == 590 | n == 495 | n == 433 | n == 309 | n == 278 | n == 272 | n == 212 | n == 202 | n == 189 |
+                          n == 187 | n == 169 | n == 165 | n == 156 | n == 151 | n == 141 | n == 126 | n == 116 ~ "Week April"))
+  
+weekwords %>%
+  select(word, freq, week) %>%
+  mutate(word = reorder(word, freq)) %>%
+  ggplot(aes(word, freq, fill = week)) +
+  geom_col(show.legend = F) +
+  facet_wrap(~week, scales = "free_y") +
+  labs(title = "Topwords Occurance",
+       subtitle = "26 Jan - 02 Feb 2020 and 23 April - 30 April 2020",
+       y="Token Frequence in %", 
        x=NULL) +
   coord_flip()
 ```
 
 
 
-```{r wordcloud, warning=FALSE}
+```{r wordcloud, message=FALSE, warning=FALSE}
 wc_week1 <- week1words %>%
   mutate(word = reorder(word, n)) %>%
   mutate_if(is.factor, as.character)
