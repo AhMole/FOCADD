@@ -236,7 +236,7 @@ weekwordsoccur %>%
 ```
 
 Therefore the "raw" count of words (=tokens) is not very representive because it was not equally tweetet in these weeks. This can seen by the dataframe observation of "tweetsweek1" (1443 Tweets) and "tweetsweek2" (3533). The week of April contains more than twice as many tweets as the week of January. 
-To analyse the possible change of racial slurs on Twitter during the coronavirus we compare the frequency in percent of the top 20 words. To calculate this frequency the occurance of each word is counted and divided by the total sum of all occuraces of the week and multiplied by 100 to get the percentage value.
+To analyse the possible change of racial slurs on Twitter during the coronavirus we compare the frequency in percent of the top 20 words. To calculate this frequency the occurance of each word is counted and divided by the total sum of all occuraces of the week and multiplied by 100 to get the percentage value. However, it seems that the racial slurs not decrease but rather they increase and change within the slur expression. Moreover, this result shows also that the tweeting behavior of this topic rises and is not dependend on something like a triggering event like the declaration of the coronavirus as a pandemic. 
 
 ```{r fig.show="hide", message=FALSE, warning=FALSE}
 tweetsweek1 %>%
@@ -291,9 +291,9 @@ weekwords %>%
   coord_flip()
 ```
 
+This graph shows that the occurance of the racial slur "chingchong" decrease over time because in the end of January "chingchong" occurs approximal 20% and in the end of April only approximal 2%. The racial slur "chinazi" experiences no really change over time, But on the other hand, the slur "chinesevirus" increases in the time between January and April. Moreover, other slurs emerge in this time like "chinaliedpeopledied", "wuhanvirus", "chinamustpay", and "boycottchina". They can also get more used by the common, so they occur more often in this context. This result shows also that the there is a change from more racist slurs against chinese looking people to slurs against the government of China. This can also be seen in these wordclouds below.  
 
-
-```{r wordcloud, message=FALSE, warning=FALSE}
+```{r wordcloud, include=FALSE, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
 wc_week1 <- week1words %>%
   mutate(word = reorder(word, n)) %>%
   mutate_if(is.factor, as.character)
