@@ -1,0 +1,385 @@
+---
+title: "As Pandemics spread, so does Xenophobia? A Twitter investigation"
+author: "Alexander Herbel & Lennart Rösemeier"
+date: "11 6 2020"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+    fig_caption: yes
+fontsize: 12pt
+
+bibliography: /Users/alexander/Desktop/Master Sociology/2. Semester/Fundamentals of Computing../Referencess.bib
+csl: /Users/alexander/Desktop/Master Sociology/2. Semester/Fundamentals of Computing../american-sociological-association.csl
+---
+
+```{r a, include=FALSE}
+library(rtweet)
+library(tidyverse)
+library(tidytext)
+library(textdata)
+library(RCurl)
+library(tidyverse)
+library(knitr)
+library(rmarkdown)
+library(RCurl)
+library(rtweet)
+library(bookdown)
+knitr::opts_chunk$set(echo = TRUE)
+options(knitr.duplicate.label = "allow")
+```
+
+# Introduction 
+
+The outbreak of coronavirus has drastically changed our lives in several ways. Governments of most countries have implemented social distancing measures in order to fight the pandemic. In the course of the spread, the internet and especially social media has become a valuable means of acquiring information and reaching out to people around the globe.
+However, the internet is also known to be used for spreading fake news and conspiracy theories. Besides that, past reasearch has shown that pandemics entail waves of hate speech and racism against minorities. Indeed, this seems to show in the current situation [@turnbull_lau_bothwell_waters_schneider_akinbosede_grove_mckie_ross_2020]. Several cases have been reported, documenting xenophobic behavior against people of Asian descent worldwide, since coronavirus became a global crisis [@turnbull_lau_bothwell_waters_schneider_akinbosede_grove_mckie_ross_2020]. It is within this context that our attention is drawn towards the relationship between the spread of pandemics and xenophobia. In this paper we therefore attempt to investigate the emergence of xenophobic behavior on the social media platform Twitter. 
+
+
+
+# Theoretical Framwork & Previous Literature
+
+The term xenophobia is well established in the scientific literature. However, it has only a weak theoretical foundation. This is due to all the ambiguity of the term [@WICKER200116649]. 
+Traditionally, xenos means both stranger and the guest in Greek words. Yet, the term is usually associated with hostility against strangers. In social psychology, xenophobia refers to a specific ingroup response that uses categorization in the form of stereotypes and prejudices. The literature concludes that xenophobia especially sparks when a social group feels threatened by an outgroup, which in turn leads to negative attitudes towards this outgroup [@WICKER200116649]. 
+Ever since, the existence of xenophobia has largely been explained by the competition for scarce resources [@hjerm2011composition]. For instance, studies show that low GDP and large proportion of immigrants are strongly associated with xenophobic behavior in Europe [@quillian1995prejudice]. @doi:10.1111/risa.12537 in their study on Ebola salience in Italy, find that prejudice toward African immigrants was positively related to salience and risk perception of Ebola. Similarly, @article demonstrate that the Ebola outbreak in 2014, negatively affected prejudice against African immigrants in the USA.
+Another branch of literature has focused on xenophobic activities on social media. @keum2018racism conclude that it is especially the anonymity of the internet, that fosters hate speech on the web. At the same time, it is well documented that a crisis can act as a main driver of xenophobic activity, leading to panic among people who are confronted with threats to their health and those of their peers [@hjerm2011composition]. Within this frame, especially the mix of unexpected development of the pandemic and the possibilities of the internet, may lead people to engage in irrational decision making, which in turn leads to massive blame towards Chinese and Asian people in general. 
+
+# Methods
+
+To study the prevalence of xenophobia against Asians and Chinese, we collected data from Twitter via Pythons [*TwitterScraper*](https://www.github.com/taspinar/twitterscraper). Since we are interested in the development of specific language and wordings towards people from Asia, we decided to restrict tweets to English language which were created between November 1, 2019 and April 30, 2020. As hate speech against minorities is predominantly associated with insults, we decided to use common ethnic slurs such as chinazi and chingchong [@finkelstein2018quantitative]. Furthermore, to capture anti sentiments on a more general level, we additionally extracted tweets with the hashtags #chinaliedpeopledied and #chinesevirus. While the former is often used to blame China for the outbreak, the latter dates back to a tweet by US president Donald Trump in which he referred to the pandemic as a "Chinese Virus".
+We excluded repetitive Tweets as well as retweets, which leaves us with 37129 Tweets in the final dataset. 
+
+Our Analytic strategy is trivial. Since past research suggests that hate speech on social media exists and pandemics have shown associations with waves of xenophobia, we would expect a clear increase of racial slurs on twitter as well as the above mentioned hashtags, over the period of interest. However, from a methodological point of view, the endeavour of capturing xenophobia on Twitter is not self-evident. Searching for specific tweets on the world wide web raises several  validity concerns, since multiple selection stages taking place. Hence, we provide an extended explanation in the discussion section. Furthermore, single search terms do not capture the whole context of a given tweet. For instance it might be the case that our search terms are also used in a positive context which would clearly bias our results. Thus, to circumvent this concern, we implement a sentiment analysis and show that indeed our dataset mostly comprises negative sentiments.
+ 
+# Results
+
+## Data exploration
+
+```{r include=FALSE, warning=FALSE}
+library(NLP)
+library(tm)
+library(quanteda)
+library(tidyverse)
+library(stringi)
+library(utf8)
+library(tidytext)
+library(data.table)
+library(RColorBrewer)
+webshot::install_phantomjs()
+library(webshot)
+library(rtweet)
+library(htmlwidgets)
+library(wordcloud)
+library(wordcloud2)
+library(saotd)
+library(RCurl)
+library(reshape2)
+library(lubridate)
+```
+
+First of all, the data is loaded as a dataframe called "tweets". The data comes with different encodings, probably according to the location of the twitter user. 
+
+```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
+id <- "1Fy2sfSzqGATNu_lICcUds6r9pz-5HL-E"
+tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
+iconvlist()
+```
+
+Encoding the data to UTF-8 allows for special characters like #,@,% and similiar. Unfortunately, the data is dirty due to URLs, non-english characters, typos and other strings. The cleaner the data the more precise the analysis. To remove the URLs the function "removeURL" is applied to the tweets. The text of the tweets resides in the "text"" column of the "tweets" data.
+
+```{r include=FALSE, message=FALSE, warning=FALSE}
+tweets$text <- stri_encode(tweets$text, "", "UTF-8")
+
+tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
+corpus <- Corpus(DataframeSource(tweetdata))
+
+#function to remov URLs
+removeURL <- content_transformer(function(x) gsub("(f|ht)tp(s?)://\\S+", "", x, perl=T))
+
+
+corpus <- tm_map(corpus, removeURL)
+d <- data.frame(text = sapply(corpus, as.character), stringsAsFactors = F)
+tweets$text <- d$text
+rm(d)
+```
+
+Furthermore, decapitalization is applied to all tweets and non-alphanumerics, punctation, line breaks, unicode scripted characters and special signs such as question marks are removed from the tweets. As a result of this, some rows contain an empty cell and followingly such rows get also deleted. This decreased the dataset by 557 rows.
+
+```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
+tweets <- as_tibble(tweets)
+class(tweets$text)
+
+tweets$text <- tolower(tweets$text)
+
+tweets %>%
+  mutate_if(is.factor, as.character) 
+
+tweets$text <- str_replace_all(tweets$text,
+                c("[\r\n]" = " ", "[[:punct:]]" = " " , "[^[:alnum:] ]" = " ", "[^a-zA-Z0-9]" = " ", "[\\s[:digit:]]" = " ", "don" = "dont"))
+
+setDT(tweets)
+cols_rectified <- names(tweets)[vapply(tweets, is.character, logical(1))]
+tweets[,c(cols_rectified) := lapply(.SD, trimws), .SDcols = cols_rectified]
+tweets[,c(cols_rectified) := lapply(.SD, function(x)gsub("\\s+", " ", x)), .SDcols = cols_rectified]
+
+empty_char <- tweets %>%
+  filter(!str_detect(text, ""))
+
+tweets <- tweets %>%
+  anti_join(empty_char, by = "text")
+
+rm(empty_char)
+```
+
+In addition, so called stopwords (e.g. "and", "the", "is", and more) can bias the analysis because such words are frequently more used than other words. That is, the stopwords are removed via a pre-made list as well as some custom stopwords, especially abbreviations which are commonly used on social media such as "lol", "wtf", "idk", "asap", etc. The custom stopwords are not declared in the pre-made list and therefore we add them manually by inspecting the data. This reduces the dataframe from approx. 700.000 words (in sentiment analysis so called "tokens") to approx. 56.835 tokens. Moreover, tokens which occur less than 10 times are not very representive. Based on this, these tokens are removed too. This leads to a final dataframe with 4451 tokens. The first exploration of the processed data results in "chinazi", "chinesevirus", "china", "chinaliedpeopledied", "asian" as the top five most common words.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+data("stop_words")
+
+custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn", "lol", "xi", "ang", "ako", "mo", "lang", "nga", "kung", "naman", "kaya", "kayo", "pero", "yung", "yan", "twitter", "ban"), 
+                                      lexicon = c("custom")), 
+                               stop_words)
+
+tweetwords <- tweets %>%
+  unnest_tokens(word, text) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>% #56851
+  filter(n > 10) #4467 #more or less clean dataset w/ words which occur more than 10 times
+
+# first inspection of top words
+tweetwords %>%
+  filter(n > 1000) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip() +
+  labs(title="Topwords of the Tweets", subtitle="Words which occur more than 1000 times", x="Words",
+       y="Wordcount")
+```
+
+```{r include=FALSE, fig.height = 11, fig.width = 9, warning=FALSE}
+#topwords get displayed in a wordcloud, wordcloud is a .html file on github repo
+wcloud <- tweetwords %>%
+  anti_join(stop_words) %>%
+  filter(n > 100) %>%
+  mutate(word = reorder(word, n))
+
+cloud <- wordcloud2(wcloud)
+saveWidget(cloud, "wcloud.html", selfcontained = F)
+webshot("wcloud.html", "wcloud.png", delay = 5, vwidth = 2000, vheight = 2000)
+```
+\newpage
+Racial slurs like "chinazi", "chingchong", "chinesevirus", and similar can also be used in an ironic or maybe positive sentiment. Therefore, the general sentiment of these tweets is computed. It shows that the dataset is more negatively polarized, since there are twice as many negative as positive sentiments (434 negative vs 205 positive). We conclude that our data indeed is largely associated with negative sentiments. The result is shown in the table and the figure below. 
+
+```{r include=FALSE} 
+sentiment <- tweetwords %>%
+  rename("amount" = "n") %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, amount, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative) %>%
+  arrange(desc(amount))
+```
+```{r warning=FALSE}
+dplyr::count(sentiment, negative, positive)
+```
+
+```{r echo=FALSE, fig.height=5, fig.width=14, warning=FALSE}
+sentiment %>%
+  filter(amount > 50) %>%
+  ggplot(aes(word, sentiment)) +
+  geom_col() +
+  labs(title="Positive/Negative Sentiments of the Tweets", caption="only tokens which occur more than 50 times are displayed due to illustration reasons",
+       y="Negative        Sentiment        Positive", 
+       x="Tokens") +
+  theme(axis.title.x = element_text(),
+        axis.text.x = element_text(color = "black", angle = 90),
+        axis.ticks.x = element_blank(),
+        axis.title.y = element_text(),
+        axis.text.y = element_text(color = "black"),
+        axis.ticks.y = element_line()) 
+```
+
+```{r include=FALSE, warning=FALSE}
+sentiment %>%
+  count(word, sentiment, amount) %>%
+  acast(word ~ sentiment, value.var = "amount", fill = 0) %>%
+  magrittr::set_colnames(c("negative", "positive")) %>%
+  comparison.cloud(colors = c("red", "blue"),
+                   max.words = 100, random.order = F, 
+                   match.colors = T)
+```
+
+
+
+## Analysis
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Plot 1"}
+x <- getURL("https://raw.githubusercontent.com/AhMole/FOCADD/master/hashtags.csv")
+data <- read.csv(text = x)
+data$timestamp <- as.POSIXct(data$timestamp)
+ts_plot(data, "hours") +
+labs(x = NULL, y = NULL,
+title = "Frequency of tweets with a #chinaliedpeopledied or #chinesevirus hashtag",
+subtitle = paste0(format(min(data$timestamp), "until ", "%d %B %Y"), format(max(data$timestamp),"%d %B %Y")),
+caption = "Data collected via Python") +
+theme_minimal()
+```
+
+Figure 1 shows the number of tweets containing the hashtags #chinesevirus or #chinaliedpeopledied from January until end of April. Unsurprisingly, the hashtags first appear in January, since the Chinese government announced the first lockdown in Wuhan and other cities in the region Hubei [@bbcnews_2020]. Furthermore the WHO declared a public health emergency at January, 30 [@WHO]. 
+This slight increase in January remains relatively stable until mid of march where the tweets spiked slightly. More interestingly, in the second half of march, we can observe a tremendous increase in the usage of the respective hashtags. This can most likely be explained by the tweet of US president Donald Trump, who referred to Covid-19 as "Chinese Virus" in a tweet. After that incident the rate of the given tweets slowly and steadily decreases until the end of the observation period.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, fig.cap="Plot 2"}
+y <- getURL("https://raw.githubusercontent.com/AhMole/FOCADD/master/chingchong.csv")
+data2 <- read.csv(text = y)
+ 
+data2$timestamp <- as.POSIXct(data2$timestamp)
+
+ts_plot(data2, "months") +
+  labs(x = NULL, y = NULL,
+       title = "Frequency of tweets with the words chingchong or chinazi",
+       subtitle = paste0(format(min(data$timestamp), "until ", "%d %B %Y"), format(max(data$timestamp),"%d %B %Y")),
+       caption = "Data collected via Python") +
+  theme_minimal()
+```
+
+Figure 2 makes it quite clear that the usage of the slurs chingchong and chinazi has drastically increased over the given period. Here we observe a steep incline in the month of November, followed by a second steep incline from December to January. Afterwards, the usage of the slurs remains relatively stable until end of April. 
+
+Next, we aim to analyze the development of racial slurs within the given period. On the 30th of January the World Health Organization declared the COVID-19 virus as a "Public Health Emergency of International Concern" [@WHO]. Based on this, the frequency of occurence of the words in this week (26 Jan - 02 Feb 2020) are compared with the frequency of the words in the last week of the dataset (23 - 30 April 2020). Racial slurs ("chingchong", "chinazi", "chinaliedpeopledied", "chinesevirus", etc.) are under the top 20, which can be seen in the output below. 
+
+```{r echo=FALSE, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
+tweetsweek1 <- tweets %>%
+  select(timestamp, text) %>%
+  rename("date" = "timestamp", "tweet" = "text") %>%
+  mutate(day=day(strptime(date, "%Y-%m-%d %H:%M:%S")) %>% as.character()) %>%
+  mutate(month=month(strptime(date, "%Y-%m-%d %H:%M:%S")) %>% as.character()) %>%
+  mutate(year=year(strptime(date, "%Y-%m-%d %H:%M:%S")) %>% as.character()) %>%
+  arrange(year, month, day) %>%
+  unite(newdate, day, month, year, sep = "-", remove = T) %>%
+  select(-date) %>%
+  rename("date" = "newdate") %>%
+  mutate(date = as.Date(date, "%d-%m-%Y")) %>%
+  filter(date >= "2020-1-26" & date <= "2020-2-02")
+
+
+tweetsweek2 <- tweets %>%
+  select(timestamp, text) %>%
+  rename("date" = "timestamp", "tweet" = "text") %>%
+  mutate(day=day(strptime(date, "%Y-%m-%d %H:%M:%S")) %>% as.character()) %>%
+  mutate(month=month(strptime(date, "%Y-%m-%d %H:%M:%S")) %>% as.character()) %>%
+  mutate(year=year(strptime(date, "%Y-%m-%d %H:%M:%S")) %>% as.character()) %>%
+  arrange(year, month, day) %>%
+  unite(newdate, day, month, year, sep = "-", remove = T) %>%
+  select(-date) %>%
+  rename("date" = "newdate") %>%
+  mutate(date = as.Date(date, "%d-%m-%Y")) %>%
+  filter(date >= "2020-4-23" & date <= "2020-4-30")
+```
+```{r echo=FALSE}
+week1occur <- tweetsweek1 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20)
+
+week2occur <- tweetsweek2 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20)
+
+
+weekwordsoccur <- week1occur %>%
+  bind_rows(week2occur) %>%
+  mutate(week = case_when(n == 619 | n == 295 | n == 201 | n == 166 | n == 162 | n == 146 | n == 139 | n == 132 | n == 97 | n == 89 | n == 58 |
+                          n == 47 | n == 41 | n == 36 | n == 35 | n == 31 | n == 30 | n == 28  ~ "Week Jan/Feb",
+                          n == 1590 | n == 1005 | n == 974 | n == 590 | n == 495 | n == 433 | n == 309 | n == 278 | n == 272 | n == 212 | n == 202 | n == 189 |
+                          n == 187 | n == 169 | n == 165 | n == 156 | n == 151 | n == 141 | n == 126 | n == 116 ~ "Week April"))
+
+weekwordsoccur %>%
+  select(word, n, week) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = week)) +
+  geom_col(show.legend = F) +
+  facet_wrap(~week, scales = "free_y") +
+  labs(title = "Topwords Occurence",
+       subtitle = "26 Jan - 02 Feb 2020 and 23 April - 30 April 2020",
+       y="Token Occurence", 
+       x=NULL) +
+  coord_flip()
+```
+
+However, the "raw" count of words (tokens) is not very representive, since it was not equally much tweeted in the respective weeks. This can be seen by the dataframe of "tweetsweek1" (1443 Tweets) and "tweetsweek2" (3533). The week of April contains more than twice as many tweets as the week of January. Thus, to analyze the development of racial slurs on Twitter during the coronavirus we compare the frequency in percent of the top 20 words. To calculate this frequency, the occurence of each word is counted and divided by the total sum of all occurences of the week and multiplied by 100 to get the percentage value. 
+
+```{r echo=FALSE, fig.show="hide", message=FALSE, warning=FALSE}
+tweetsweek1 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  summarise(total = sum(n)) #2416
+```
+
+```{r echo=FALSE, fig.show="hide", message=FALSE, warning=FALSE}
+tweetsweek2 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  summarise(total = sum(n))   #7760
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+week1words <- tweetsweek1 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  mutate(freq = (n/2416)*100)
+
+week2words <- tweetsweek2 %>%
+  unnest_tokens(word, tweet) %>%
+  anti_join(custom_stop_words) %>%
+  count(word,  sort=T) %>%
+  top_n(20) %>%
+  mutate(freq = (n/7760)*100)
+
+weekwords <- week1words %>%
+  bind_rows(week2words) %>%
+  mutate(week = case_when(n == 619 | n == 295 | n == 201 | n == 166 | n == 162 | n == 146 | n == 139 | n == 132 | n == 97 | n == 89 | n == 58 |
+                          n == 47 | n == 41 | n == 36 | n == 35 | n == 31 | n == 30 | n == 28  ~ "Week Jan/Feb",
+                          n == 1590 | n == 1005 | n == 974 | n == 590 | n == 495 | n == 433 | n == 309 | n == 278 | n == 272 | n == 212 | n == 202 | n == 189 |
+                          n == 187 | n == 169 | n == 165 | n == 156 | n == 151 | n == 141 | n == 126 | n == 116 ~ "Week April"))
+  
+weekwords %>%
+  select(word, freq, week) %>%
+  mutate(word = reorder(word, freq)) %>%
+  ggplot(aes(word, freq, fill = week)) +
+  geom_col(show.legend = F) +
+  facet_wrap(~week, scales = "free_y") +
+  labs(title = "Topwords Occurence",
+       subtitle = "26 Jan - 02 Feb 2020 and 23 April - 30 April 2020",
+       y="Token frequency in %", 
+       x=NULL) +
+  coord_flip()
+```
+
+We can clearly see that while chingchong was the most frequent word used in the week between January and February, in the last week of April the most common word became chinaliedpeopldied. Overall, it seems that the racial slurs do not decrease but rather increase and change within the slur expression. At the end of the period, we observe that compared to Jan/Feb, positive terms such as health and mask disappear, while new negative terms such as boycottchina and chinamustpay emerge. This finding indicates that the composition of tweets has changed from mere insults towards Asian looking people to slurs against the government of China. 
+
+# Discussion & Conclusion 
+
+Many governments have implemented measures like social distancing to fight the coronavirus pandemic. Consequently, the internet has become an even larger part of information gathering and sharing. At the same time, the past shows significant relationships between the rise of pandemics and xenophobic behavior worldwide. This work therefore explores the rise of xenophobic language on social media.
+
+In sum, our results show an unambiguous incline of anti sentiments against Chinese and Asian people over a six months period. However, the composition of the terms apparently changed towards more blame against China as a whole Country.   Moreover, our results demonstrate that xenophobia is not dependent on a specific event like the declaration of the coronavirus as a pandemic, but is ubiquitious and increases as the crisis progresses.
+
+Nevertheless, we should highlight a few features of our empirical design. First, our dataset is far from being representative of the general population, since several selection stages are involved until a user decides to create a post on Twitter. However, this was not our primary goal. In fact, our results are aligned with anecdotical evidence from real world case reports and in a sense, verify the predictive power of Twitter data [@gayo2012wanted]. 
+Furthermore, we argue that our investigation on Twitter is more on the conservative side, since it is regarded as a mainstream social media platform. Followingly, finding a rise of xenophobia on Twitter, might indicate a far higher rise on other social media platforms, opening multiple avenues for future research.    
+
+\newpage
+
+# Appendix
+Our extended Rmd file as well as our additional analysis-files can be found [*here*](https://github.com/AhMole/FOCADD.git).
+
+\newpage
+
+# References
