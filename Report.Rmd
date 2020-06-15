@@ -78,7 +78,7 @@ library(lubridate)
 
 First of all, the data is loaded as a dataframe called "tweets". The data comes with different encodings, probably according to the location of the twitter user. 
 
-```{r results="hide", message=FALSE, warning=FALSE}
+```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
 id <- "1Fy2sfSzqGATNu_lICcUds6r9pz-5HL-E"
 tweets <- read.csv(sprintf("https://docs.google.com/uc?id=%s&export=download", id))
 iconvlist()
@@ -86,7 +86,7 @@ iconvlist()
 
 Encoding the data to UTF-8 allows for special characters like #,@,% and similiar. Unfortunately, the data is dirty due to URLs, non-english characters, typos and other strings. The cleaner the data the more precise the analysis. To remove the URLs the function "removeURL" is applied to the tweets. The text of the tweets resides in the "text"" column of the "tweets" data.
 
-```{r message=FALSE, warning=FALSE}
+```{r include=FALSE, message=FALSE, warning=FALSE}
 tweets$text <- stri_encode(tweets$text, "", "UTF-8")
 
 tweetdata <- data.frame(doc_id = tweets$screen_name, text = tweets$text)
@@ -104,7 +104,7 @@ rm(d)
 
 Furthermore, decapitalization is applied to all tweets and non-alphanumerics, punctation, line breaks, unicode scripted characters and special signs such as question marks are removed from the tweets, As a result of this, some rows contain an empty cell and followingly such rows get also deleted. This decreased the dataset by 557 rows.
 
-```{r results="hide", message=FALSE, warning=FALSE}
+```{r include=FALSE, results="hide", message=FALSE, warning=FALSE}
 tweets <- as_tibble(tweets)
 class(tweets$text)
 
@@ -130,9 +130,9 @@ tweets <- tweets %>%
 rm(empty_char)
 ```
 
-In addition, so called stopwords (e.g. "and", "the", "is", and more) can bias the analysis because such words are frequently more used than other words. That is, the stopwords are removed via a pre-made list as well as some custom stopwords, especially abbreviations which are commonly used on social media such as "lol", "wtf", "idk", "asap", etc. The custom stopwords are not declared in the pre-made list and therefore we add them manually by inspecting the data. This reduces the dataframe from approx. 700.000 tokens to approx. 56.835 tokens. Moreover, tokens which occur less than 10 times are not very representive. Based on this, these tokens are removed too. This leads to a final dataframe with 4451 tokens. The first exploration of the processed data results in "chinazi", "chinesevirus", "china", "chinaliedpeopledied", "asian" as the top five most common words.
+In addition, so called stopwords (e.g. "and", "the", "is", and more) can bias the analysis because such words are frequently more used than other words. That is, the stopwords are removed via a pre-made list as well as some custom stopwords, especially abbreviations which are commonly used on social media such as "lol", "wtf", "idk", "asap", etc. The custom stopwords are not declared in the pre-made list and therefore we add them manually by inspecting the data. This reduces the dataframe from approx. 700.000 words (in sentiment analysis so called "tokens") to approx. 56.835 tokens. Moreover, tokens which occur less than 10 times are not very representive. Based on this, these tokens are removed too. This leads to a final dataframe with 4451 tokens. The first exploration of the processed data results in "chinazi", "chinesevirus", "china", "chinaliedpeopledied", "asian" as the top five most common words.
 
-```{r message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 data("stop_words")
 
 custom_stop_words <- bind_rows(tibble(word = c("de", "na", "pic", "sa", "en", "la", "mga", "ng", "el", "di", "ko", "se", "ka", "ve", "si", "pa", "ll", "ce", "hksos", "lahat", "niyo", "sr", "rus", "pra", "han", "hay", "hoy", "ga", "nah", "pc", "ug", "nya", "cuz", "ta", "ad", "ada", "ini", "xl", "es", "da", "isn", "ni", "le", "al", "lo", "ha", "ya", "ma", "rt", "ba", "fu", "eh", "ur", "aren", "hey", "ncov", "dont", "bc", "dr", "las", "st", "hahaha", "lmao", "mas", "il", "em", "yo", "jo", "ne", "jg", "wwg", "tu", "ny", "des", "deste", "jan", "kay", "ain", "omg", "je", "btw", "idk", "pm", "sb", "ww", "au", "fr", "pla", "aoc", "ca", "nyo", "qu", "ses", "asap", "li", "te", "wala", "kasi", "dude", "ser", "set", "wtf", "ah", "ano", "um", "aka", "bts", "cls", "ja", "lam", "su", "abc", "dito", "vp", "hahahahaha", "haha", "nna", "din", "ke", "po", "ppe", "sir", "doesn", "lol", "xi", "ang", "ako", "mo", "lang", "nga", "kung", "naman", "kaya", "kayo", "pero", "yung", "yan", "twitter", "ban"), 
@@ -171,7 +171,7 @@ webshot("wcloud.html", "wcloud.png", delay = 5, vwidth = 2000, vheight = 2000)
 
 Racial slurs like "chinazi", "chingchong", "chinesevirus", and similar can also be used in an ironic or maybe positive sentiment. So, the general sentiment of these tweets is computed. It shows that the dataset is more negatively polarized, since there are twice as many negative as positive sentiments (434 negative vs 205 positive). We conclude that our data indeed is largely associated with negative sentiments. The result is shown in the table and the figure below. 
 
-```{r warning=FALSE}
+```{r include=FALSE} 
 sentiment <- tweetwords %>%
   rename("amount" = "n") %>%
   inner_join(get_sentiments("bing")) %>%
@@ -179,9 +179,9 @@ sentiment <- tweetwords %>%
   spread(sentiment, n, fill = 0) %>%
   mutate(sentiment = positive - negative) %>%
   arrange(desc(amount))
-
+```
+```{r warning=FALSE}
 dplyr::count(sentiment, negative, positive)
-
 ```
 
 ```{r echo=FALSE, fig.height=5, fig.width=14, warning=FALSE}
@@ -245,7 +245,7 @@ Figure 2 makes it quite clear that the usage of the slurs chingchong and chinazi
 
 Next, we aim to analyze the development of racial slurs within the given period. On the 30th of January the World Health Organization declared the COVID-19 virus as a "Public Health Emergency of International Concern" [@WHO]. Based on this, the frequency of occurence of the words in this week (26 Jan - 02 Feb 2020) are compared with the frequency of the words in the last week of the dataset (23 - 30 April 2020). Racial slurs ("chingchong", "chinazi", "chinaliedpeopledied", "chinesevirus", etc.) are under the top 20 which can be seen in graphs below. 
 
-```{r results="hide", fig.show="hide", message=FALSE, warning=FALSE}
+```{r echo=FALSE, results="hide", fig.show="hide", message=FALSE, warning=FALSE}
 tweetsweek1 <- tweets %>%
   select(timestamp, text) %>%
   rename("date" = "timestamp", "tweet" = "text") %>%
@@ -273,7 +273,7 @@ tweetsweek2 <- tweets %>%
   mutate(date = as.Date(date, "%d-%m-%Y")) %>%
   filter(date >= "2020-4-23" & date <= "2020-4-30")
 ```
-```{r}
+```{r echo=FALSE}
 week1occur <- tweetsweek1 %>%
   unnest_tokens(word, tweet) %>%
   anti_join(custom_stop_words) %>%
